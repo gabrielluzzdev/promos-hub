@@ -24,12 +24,8 @@ jobs:
         run: |
           if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
 
-      - name: Upload lockfile (enquanto não estiver commitado)
-        if: ${{ hashFiles('package-lock.json') != '' && always() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: package-lock
-          path: package-lock.json
+      - name: Export lockfile (temporário)
+        run: echo "LOCKFILE_B64=$(gzip -9c package-lock.json | base64 -w0)"
 
       - name: Typecheck
         run: npm run typecheck
