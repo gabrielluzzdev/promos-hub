@@ -20,6 +20,7 @@ const serverSchema = z.object({
 });
 
 export type ServerEnv = z.infer<typeof serverSchema>;
+export type ServerEnvKey = keyof ServerEnv;
 
 export function parseServerEnv(source: Record<string, string | undefined>): ServerEnv {
   const result = serverSchema.safeParse(source);
@@ -32,9 +33,19 @@ export function parseServerEnv(source: Record<string, string | undefined>): Serv
   return result.data;
 }
 
-let cached: ServerEnv | undefined;
+/** Lê e valida só as variáveis pedidas. */
+export function env<K extends ServerEnvKey>(...keys: K[]): Pick<ServerEnv, K> {
+  const picked = serverSchema.pick(Object.fromEntries(keys.map((k) => [k, true])) as { [P in K]: true });
+  const result = picked.safeParse(process.env);
+  if (!result.success) {
+    const problems = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+    throw new Error(`Variáveis de ambiente inválidas: ${problems}`);
+  }
+  return result.data as Pick<ServerEnv, K>;
+}
 
-export function serverEnv(): ServerEnv {
-  cached ??= parseServerEnv(process.env);
-  return cached;
+/** Variável opcional (ex.: AMAZON_ASSOCIATE_TAG antes de ter conta aprovada). */
+export function optionalEnv(key: ServerEnvKey): string | undefined {
+  const value = process.env[key];
+  return value && value.length > 0 ? value : undefined;
 }
