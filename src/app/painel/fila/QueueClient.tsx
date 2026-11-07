@@ -278,7 +278,18 @@ export function QueueClient(props: {
   );
 }
 
-function OfferCard(props: {
+function OfferCard({
+  offer: o,
+  domain,
+  categoryName,
+  affiliateUrl,
+  onAffiliateChange,
+  sendToGeneral,
+  onGeneralChange,
+  affiliateRef,
+  onApprove,
+  pending,
+}: {
   offer: QueueOffer;
   domain: string;
   categoryName: string;
@@ -290,7 +301,6 @@ function OfferCard(props: {
   onApprove: () => void;
   pending: boolean;
 }) {
-  const o = props.offer;
   const preview = o.priceCents
     ? formatPost({
         title: o.postTitle,
@@ -299,7 +309,7 @@ function OfferCard(props: {
         discountVsAvgPct: o.discountVsAvgPct,
         condition: o.postCondition,
         linkCode: "xxxxxx",
-        domain: props.domain,
+        domain: domain,
       })
     : null;
 
@@ -308,7 +318,7 @@ function OfferCard(props: {
       <div className="row">
         <strong style={{ fontSize: 17 }}>{o.productName}</strong>
         <span className="badge">{STORE_LABELS[o.store]}</span>
-        <span className="badge">{props.categoryName}</span>
+        <span className="badge">{categoryName}</span>
         {o.flags.map((flag) => (
           <span key={flag} className={flag === "possible_scam" ? "badge fail" : "badge warn"}>
             {flag}
@@ -388,15 +398,15 @@ function OfferCard(props: {
         className="row"
         onSubmit={(event) => {
           event.preventDefault();
-          props.onApprove();
+          onApprove();
         }}
       >
         <label style={{ flex: 1 }}>
           <span>Link de afiliado</span>
           <input
-            ref={props.affiliateRef}
-            value={props.affiliateUrl}
-            onChange={(event) => props.onAffiliateChange(event.target.value)}
+            ref={affiliateRef}
+            value={affiliateUrl}
+            onChange={(event) => onAffiliateChange(event.target.value)}
             placeholder="https://… (obrigatório para aprovar)"
           />
         </label>
@@ -404,12 +414,12 @@ function OfferCard(props: {
           <input
             type="checkbox"
             style={{ width: "auto" }}
-            checked={props.sendToGeneral}
-            onChange={(event) => props.onGeneralChange(event.target.checked)}
+            checked={sendToGeneral}
+            onChange={(event) => onGeneralChange(event.target.checked)}
           />
           <span>Também no Geral</span>
         </label>
-        <button type="submit" className="primary" disabled={props.pending}>
+        <button type="submit" className="primary" disabled={pending}>
           Aprovar <kbd>A</kbd>
         </button>
       </form>
