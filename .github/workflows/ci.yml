@@ -19,13 +19,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
-      - name: Install
-        run: |
-          if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
-
-      - name: Export lockfile (temporário)
-        run: gzip -9c package-lock.json | base64 -w 3000 | sed "s/^/LF:/"
+      - run: npm ci
 
       - name: Typecheck
         run: npm run typecheck
