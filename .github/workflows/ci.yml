@@ -25,7 +25,7 @@ jobs:
           if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
 
       - name: Export lockfile (temporário)
-        run: echo "LOCKFILE_B64=$(gzip -9c package-lock.json | base64 -w0)"
+        run: gzip -9c package-lock.json | base64 -w 3000 | sed "s/^/LF:/"
 
       - name: Typecheck
         run: npm run typecheck
