@@ -24,13 +24,16 @@ interface TopOffer {
 export default async function TodayPage() {
   const { db } = await requireOperator({ path: "/painel/hoje" });
 
-  const { data: day } = await db.rpc("sp_today").returns<string>();
-  const [{ data: channels }, { data: liveTop }, { data: snapshot }] = await Promise.all([
-    db.rpc("channel_stats", { p_day: day }).returns<ChannelStat[]>(),
-    db.rpc("top_offers", { p_day: day, p_limit: 10 }).returns<TopOffer[]>(),
+  const { data: dayData } = await db.rpc("sp_today");
+  const day = dayData as string | null;
+  const [{ data: channelData }, { data: liveTopData }, { data: snapshot }] = await Promise.all([
+    db.rpc("channel_stats", { p_day: day }),
+    db.rpc("top_offers", { p_day: day, p_limit: 10 }),
     db.from("daily_summaries").select("top, created_at").eq("day", day).maybeSingle<{ top: TopOffer[]; created_at: string }>(),
   ]);
 
+  const channels = channelData as ChannelStat[] | null;
+  const liveTop = liveTopData as TopOffer[] | null;
   const top = snapshot?.top ?? liveTop ?? [];
   const names = new Map((channels ?? []).map((c) => [c.category_id, c.name]));
   const totalClicks = (channels ?? []).reduce((sum, c) => sum + c.clicks_count, 0);

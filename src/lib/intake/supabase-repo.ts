@@ -4,7 +4,12 @@ import { ruleConfigFromRows } from "@/lib/rules/config";
 import type { PriceStats } from "@/lib/rules/evaluate";
 import type { IntakeRepo, NewOffer, OfferForRules, RawInputRow } from "./repo";
 
-function check<T>(result: { data: T; error: { message: string } | null }, what: string): T {
+function check<T>(result: { data: T | null; error: { message: string } | null }, what: string): T {
+  if (result.error) throw new Error(`${what}: ${result.error.message}`);
+  return result.data as T;
+}
+
+function checkMaybe<T>(result: { data: T | null; error: { message: string } | null }, what: string): T | null {
   if (result.error) throw new Error(`${what}: ${result.error.message}`);
   return result.data;
 }
@@ -14,7 +19,7 @@ export class SupabaseIntakeRepo implements IntakeRepo {
   constructor(private readonly db: SupabaseClient) {}
 
   async getRawInput(id: string): Promise<RawInputRow | null> {
-    return check(
+    return checkMaybe(
       await this.db.from("raw_inputs").select("id, source, raw_text, status, attempts").eq("id", id).maybeSingle<RawInputRow>(),
       "getRawInput",
     );
@@ -66,7 +71,7 @@ export class SupabaseIntakeRepo implements IntakeRepo {
   }
 
   async getOfferForRules(offerId: string): Promise<OfferForRules | null> {
-    const row = check(
+    const row = checkMaybe(
       await this.db
         .from("offers")
         .select("id, status, price_cents, flags, created_at, product_id, products!offers_product_id_fkey(store)")

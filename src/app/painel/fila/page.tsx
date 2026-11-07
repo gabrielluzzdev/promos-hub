@@ -55,10 +55,8 @@ export default async function QueuePage() {
 
   const queue: QueueOffer[] = await Promise.all(
     (offers ?? []).map(async (o) => {
-      const { data: stats } = await db
-        .rpc("price_stats", { p_product_id: o.product_id, p_before: o.created_at })
-        .returns<{ min_90d: number | null; avg_90d: number | string | null; points: number }[]>();
-      const s = stats?.[0];
+      const { data: stats } = await db.rpc("price_stats", { p_product_id: o.product_id, p_before: o.created_at });
+      const s = (stats as { min_90d: number | null; avg_90d: number | string | null; points: number }[] | null)?.[0];
       return {
         id: o.id,
         createdAt: o.created_at,

@@ -2,7 +2,12 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { BotCategory, BotSession, BotStore, BotUser, SessionState } from "./store";
 
-function check<T>(result: { data: T; error: { message: string } | null }, what: string): T {
+function check<T>(result: { data: T | null; error: { message: string } | null }, what: string): T {
+  if (result.error) throw new Error(`${what}: ${result.error.message}`);
+  return result.data as T;
+}
+
+function checkMaybe<T>(result: { data: T | null; error: { message: string } | null }, what: string): T | null {
   if (result.error) throw new Error(`${what}: ${result.error.message}`);
   return result.data;
 }
@@ -31,7 +36,7 @@ export class SupabaseBotStore implements BotStore {
   }
 
   async findUserByWaId(waId: string): Promise<BotUser | null> {
-    const row = check(
+    const row = checkMaybe(
       await this.db.from("users").select("id, wa_id, status").eq("wa_id", waId).maybeSingle<UserRow>(),
       "findUserByWaId",
     );
@@ -114,7 +119,7 @@ export class SupabaseBotStore implements BotStore {
   }
 
   async getSession(userId: string): Promise<BotSession | null> {
-    const row = check(
+    const row = checkMaybe(
       await this.db.from("bot_sessions").select("state").eq("user_id", userId).maybeSingle<{ state: SessionState }>(),
       "getSession",
     );

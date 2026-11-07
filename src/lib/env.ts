@@ -35,13 +35,13 @@ export function parseServerEnv(source: Record<string, string | undefined>): Serv
 
 /** Lê e valida só as variáveis pedidas. */
 export function env<K extends ServerEnvKey>(...keys: K[]): Pick<ServerEnv, K> {
-  const picked = serverSchema.pick(Object.fromEntries(keys.map((k) => [k, true])) as { [P in K]: true });
-  const result = picked.safeParse(process.env);
+  const mask = Object.fromEntries(keys.map((k) => [k, true])) as Record<ServerEnvKey, true>;
+  const result = serverSchema.pick(mask).safeParse(process.env);
   if (!result.success) {
     const problems = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
     throw new Error(`Variáveis de ambiente inválidas: ${problems}`);
   }
-  return result.data as Pick<ServerEnv, K>;
+  return result.data as unknown as Pick<ServerEnv, K>;
 }
 
 /** Variável opcional (ex.: AMAZON_ASSOCIATE_TAG antes de ter conta aprovada). */
