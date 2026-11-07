@@ -1,18 +1,21 @@
 name: CI
 
 on:
-  pull_request:
   push:
-    branches: [main]
+    branches: ["**"]
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -21,7 +24,19 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm ci
+      # Se o package.json mudou sem o lockfile, regenera e commita (só em push de branch).
+      - name: Install
+        run: |
+          if npm ci; then exit 0; fi
+          echo "::warning::package-lock.json fora de sincronia; regenerando"
+          npm install --no-audit --no-fund
+          git config user.name gabrielluzzdev
+          git config user.email gabrielluzz733@gmail.com
+          git add package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: sincronizar package-lock.json"
+            git push
+          fi
 
       - name: Typecheck
         run: npm run typecheck
@@ -31,3 +46,26 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+          NEXT_TELEMETRY_DISABLED: "1"
+
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Migrations
+        run: supabase db start
+
+      - name: Testes de banco (pgTAP)
+        run: supabase test db

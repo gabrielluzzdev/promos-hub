@@ -1,0 +1,41 @@
+name: Backup do banco
+
+# Backup noturno (o plano Free do Supabase não tem backup diário para baixar).
+# Secrets: SUPABASE_DB_URL (connection string do Postgres) e BACKUP_PASSPHRASE.
+# O arquivo sai criptografado (gpg AES256) como artefato privado do repositório, guardado 30 dias.
+# Restaurar: gpg -d backup-AAAA-MM-DD.dump.gpg > backup.dump && pg_restore -d "$URL" --no-owner backup.dump
+
+on:
+  schedule:
+    - cron: "30 6 * * *" # 03:30 em São Paulo
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Dump criptografado
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_DB_URL" || { echo "::error::defina o secret SUPABASE_DB_URL"; exit 1; }
+          test -n "$BACKUP_PASSPHRASE" || { echo "::error::defina o secret BACKUP_PASSPHRASE"; exit 1; }
+          name="backup-$(date -u +%F).dump"
+          docker run --rm -e PGURL="$SUPABASE_DB_URL" postgres:17 \
+            sh -c 'pg_dump "$PGURL" --format=custom --no-owner --no-privileges --schema=public --schema=auth' > "$name"
+          test -s "$name"
+          gpg --batch --yes --symmetric --cipher-algo AES256 --passphrase "$BACKUP_PASSPHRASE" -o "$name.gpg" "$name"
+          rm "$name"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backup-${{ github.run_id }}
+          path: backup-*.dump.gpg
+          retention-days: 30
+          if-no-files-found: error
