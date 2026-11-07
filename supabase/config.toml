@@ -32,7 +32,6 @@ jwt_expiry = 3600
 enable_signup = false
 
 [auth.email]
-enable_signup = false
 enable_confirmations = false
 
 # MFA TOTP é obrigatório no painel (middleware exige aal2 em /painel/*).
