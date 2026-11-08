@@ -1,8 +1,5 @@
+import { redirect } from "next/navigation";
+
 export default function Home() {
-  return (
-    <main>
-      <h1>Promos Hub</h1>
-      <p>Sistema interno. O painel fica em /painel.</p>
-    </main>
-  );
+  redirect("/painel");
 }
